@@ -47,7 +47,7 @@ class ExpressionCalculator(
       results += position -> value
       if (results.size == 2) {
         val result: Int = evaluate(expr, results(Left), results(Right))
-        log.info("Evaluated expression {} to value {}", expr, result)
+//        log.info("Evaluated expression {} to value {}", expr, result)
         context.parent ! Result(expr, result, myPosition)
         context.stop(self)
       }

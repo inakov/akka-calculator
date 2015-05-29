@@ -1,5 +1,7 @@
 package fmi.akka.calculator.expression.calculator
 
+import java.io.File
+
 import akka.actor.SupervisorStrategy.Stop
 import akka.actor._
 import fmi.akka.calculator.expression.Expression
@@ -10,27 +12,18 @@ import fmi.akka.calculator.expression.Expression
 class ArithmeticService  extends Actor with ActorLogging {
   import ExpressionCalculator.{Result, Left}
 
-  var pendingWorkers = Map[ActorRef, ActorRef]()
+  var pendingWorkers = Map[ActorRef, Long]()
+  val outputFile = "/tmp/zad1-result.txt"
 
   override val supervisorStrategy = OneForOneStrategy(loggingEnabled = false) {
     case e: ArithmeticException =>
       log.error("Evaluation failed - ArithmeticException: {}", e.getMessage)
-      notifyConsumerFailure(worker = sender, failure = e)
+      pendingWorkers -= sender
       Stop
     case e =>
       log.error("Unexpected failure: {}", e.getMessage)
-      notifyConsumerFailure(worker = sender, failure = e)
+      pendingWorkers -= sender
       Stop
-  }
-
-  def notifyConsumerFailure(worker: ActorRef, failure: Throwable): Unit = {
-    pendingWorkers.get(worker) foreach { _ ! Status.Failure(failure) }
-    pendingWorkers -= worker
-  }
-
-  def notifyConsumerSuccess(worker: ActorRef, result: Int): Unit = {
-    pendingWorkers.get(worker) foreach { _ ! result }
-    pendingWorkers -= worker
   }
 
   def receive = {
@@ -39,10 +32,32 @@ class ArithmeticService  extends Actor with ActorLogging {
         expr = e,
         position = Left)
       )
-      pendingWorkers += worker -> sender
+      val startTime = System.currentTimeMillis
+      pendingWorkers += worker -> startTime
 
     case Result(originalExpression, value, _) =>
-      notifyConsumerSuccess(worker = sender, result = value)
+      val startTime: Long = pendingWorkers(sender)
+      writeResult(originalExpression, value, startTime)
+      pendingWorkers -= sender
+      if(pendingWorkers.isEmpty) self ! PoisonPill
+  }
+
+  private def writeResult(originalExpression: Expression, result: Int, startTime: Long) = {
+    val endTime = System.currentTimeMillis - startTime
+    printToFile(new File(outputFile)) { p =>
+      p.println(originalExpression)
+      log.info(s"Result: $result, Evaluation time in milliseconds: $endTime")
+      p.println(s"Result: $result, Evaluation time in milliseconds: $endTime")
+    }
+  }
+
+  private def printToFile(f: java.io.File)(op: java.io.PrintWriter => Unit) {
+    val p = new java.io.PrintWriter(f)
+    try {
+      op(p)
+    } finally {
+      p.close()
+    }
   }
 
 }
