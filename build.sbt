@@ -9,3 +9,7 @@ libraryDependencies += "org.scala-lang.modules" % "scala-parser-combinators_2.11
 libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.4-SNAPSHOT"
 
 resolvers += "Akka Snapshot Repository" at "http://repo.akka.io/snapshots/"
+
+exportJars := true
+
+assemblyJarName in assembly := "akka-calculator.jar"

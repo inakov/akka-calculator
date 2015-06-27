@@ -9,13 +9,19 @@ import fmi.akka.calculator.expression.Expression
 /**
  * Created by inakov on 5/21/15.
  */
-class ArithmeticService  extends Actor with ActorLogging {
+
+object ArithmeticService{
+  def props(outputFile: String): Props =
+    Props(classOf[ArithmeticService], outputFile)
+}
+
+class ArithmeticService(outputFile: String)  extends Actor with ActorLogging {
   import ExpressionCalculator.{Result, Left}
 
   var pendingWorkers = Map[ActorRef, Long]()
-  val outputFile = "/tmp/zad1-result.txt"
+  //val outputFile = "/tmp/zad1-result.txt"
 
-  override val supervisorStrategy = OneForOneStrategy(loggingEnabled = false) {
+  override val supervisorStrategy = OneForOneStrategy(loggingEnabled = true) {
     case e: ArithmeticException =>
       log.error("Evaluation failed - ArithmeticException: {}", e.getMessage)
       pendingWorkers -= sender
@@ -37,16 +43,16 @@ class ArithmeticService  extends Actor with ActorLogging {
 
     case Result(originalExpression, value, _) =>
       val startTime: Long = pendingWorkers(sender)
-      writeResult(originalExpression, value, startTime)
       pendingWorkers -= sender
+      writeResult(originalExpression, value, startTime)
       if(pendingWorkers.isEmpty) self ! PoisonPill
   }
 
-  private def writeResult(originalExpression: Expression, result: Int, startTime: Long) = {
+  private def writeResult(originalExpression: Expression, result: BigInt, startTime: Long) = {
     val endTime = System.currentTimeMillis - startTime
     printToFile(new File(outputFile)) { p =>
       p.println(originalExpression)
-      log.info(s"Result: $result, Evaluation time in milliseconds: $endTime")
+//      log.info(s"Result: $result, Evaluation time in milliseconds: $endTime")
       p.println(s"Result: $result, Evaluation time in milliseconds: $endTime")
     }
   }

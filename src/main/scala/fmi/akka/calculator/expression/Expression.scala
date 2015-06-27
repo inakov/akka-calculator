@@ -24,7 +24,7 @@ case class Divide(left: Expression, right: Expression) extends Expression {
   override val toString = s"($left / $right)"
 }
 
-case class Number(value: Int) extends Expression {
+case class Number(value: BigInt) extends Expression {
   def left = this
   def right = this
   override val toString = String.valueOf(value)

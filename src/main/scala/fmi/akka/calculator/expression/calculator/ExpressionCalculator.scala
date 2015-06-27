@@ -15,7 +15,7 @@ object ExpressionCalculator {
   trait Position
   case object Left extends Position
   case object Right extends Position
-  case class Result(originalExpression: Expression, value: Int, position: Position)
+  case class Result(originalExpression: Expression, value: BigInt, position: Position)
 }
 
 class ExpressionCalculator(
@@ -27,7 +27,7 @@ class ExpressionCalculator(
     case _ =>
       Escalate
   }
-  var results  = Map.empty[Position, Int]
+  var results  = Map.empty[Position, BigInt]
   var expected = Set[Position](Left, Right)
 
   override def preStart(): Unit = expr match {
@@ -46,7 +46,7 @@ class ExpressionCalculator(
       expected -= position
       results += position -> value
       if (results.size == 2) {
-        val result: Int = evaluate(expr, results(Left), results(Right))
+        val result: BigInt = evaluate(expr, results(Left), results(Right))
 //        log.info("Evaluated expression {} to value {}", expr, result)
         context.parent ! Result(expr, result, myPosition)
         context.stop(self)
@@ -58,7 +58,7 @@ class ExpressionCalculator(
       )
   }
 
-  private def evaluate(expr: Expression, left: Int, right: Int): Int = expr match {
+  private def evaluate(expr: Expression, left: BigInt, right: BigInt): BigInt = expr match {
     case _: Add      => left + right
     case _: Sub      => left - right
     case _: Multiply => left * right
