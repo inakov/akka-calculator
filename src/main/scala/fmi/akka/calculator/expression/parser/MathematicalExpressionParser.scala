@@ -1,7 +1,6 @@
 package fmi.akka.calculator.expression.parser
 
-import fmi.akka.calculator.expression.{Multiply, Add, Number, Expression, Sub, Divide}
-
+import fmi.akka.calculator.expression._
 import scala.util.parsing.combinator._
 
 
@@ -14,17 +13,21 @@ import scala.util.parsing.combinator._
 //Expr ­> Expr + Term | Expr ­ Term | Term
 //Term ­> Term * Factor | Term / Factor | Factor
 //Factor ­> Num | (Expr)
-
-
 object MathematicalExpressionParser  extends JavaTokenParsers {
-  def num: Parser[Expression] = (wholeNumber <~ "Num" ^^ (x => Number(x.toInt))) | wholeNumber ^^ (x => Number(x.toInt))
+  def num: Parser[Tree] = (wholeNumber <~ "Num" ^^ (x => Leaf(x.toInt))) | wholeNumber ^^ (x => Leaf(x.toInt))
 
-  def expr: Parser[Expression] = term ~ rep(("+" | "-") ~ term) ^^ {
-    case trm~lst => lst.foldLeft(trm){(acc, t) => if(t._1 == "+") Add(acc, t._2) else Sub(acc, t._2)}
+  def expr: Parser[Tree] = term ~ rep(("+" | "-") ~ term) ^^ {
+    case trm~lst => lst.foldLeft(trm){(acc, t) =>
+      if(t._1 == "+") Node(Add, acc, t._2) else Node(Subtract, acc, t._2)
+    }
   }
-  def term: Parser[Expression] = factor ~ rep(("*" | "/") ~ factor) ^^ {
-    case fac~lst => lst.foldLeft(fac){(acc, t) => if(t._1 == "*") Multiply(acc, t._2) else Divide(acc, t._2)}
+
+  def term: Parser[Tree] = factor ~ rep(("*" | "/") ~ factor) ^^ {
+    case fac~lst => lst.foldLeft(fac){(acc, t) =>
+      if(t._1 == "*") Node(Multiply, acc, t._2) else Node(Divide, acc, t._2)
+    }
   }
-  def factor: Parser[Expression] = num | "(" ~> expr <~")" ^^ (x => x)
+
+  def factor: Parser[Tree] = num | "(" ~> expr <~")" ^^ (x => x)
 
 }
